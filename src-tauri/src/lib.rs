@@ -1,5 +1,7 @@
 pub mod audio_engine;
+pub mod project_manager;
 
+#[cfg(not(test))]
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
