@@ -13,12 +13,13 @@
     "windows": [
       {
         "title": "music-recort",
-        "width": 800,
-        "height": 600
+        "width": 1280,
+        "height": 800
       }
     ],
     "security": {
-      "csp": null
+      "csp": null,
+      "capabilities": ["default"]
     }
   },
   "bundle": {
