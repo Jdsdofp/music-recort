@@ -29,10 +29,10 @@ export function Mixer() {
               max={2}
               step={0.01}
               value={track.volume}
-              onChange={async (e) => {
+              onChange={(e) => {
                 const vol = Number(e.target.value)
                 updateTrackVolume(track.id, vol)
-                await invoke.setVolume(track.id, vol)
+                invoke.setVolume(track.id, vol).catch(console.error)
               }}
               className="h-24 accent-purple-500 cursor-pointer"
               style={{ writingMode: 'vertical-lr', direction: 'rtl' }}
@@ -49,10 +49,10 @@ export function Mixer() {
               max={1}
               step={0.01}
               value={track.pan}
-              onChange={async (e) => {
+              onChange={(e) => {
                 const pan = Number(e.target.value)
                 updateTrackPan(track.id, pan)
-                await invoke.setPan(track.id, pan)
+                invoke.setPan(track.id, pan).catch(console.error)
               }}
               className="w-14 accent-pink-400 cursor-pointer"
             />

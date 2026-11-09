@@ -51,10 +51,18 @@ def separate_via_api(
     }
 
     # 1. Submeter job
-    payload = {
+    # Segurança: não enviar caminhos locais (file://) para a API remota — isso vaza
+    # informações do sistema e pode ser explorado via SSRF. A API Moises requer uma
+    # URL publicamente acessível; upload direto de arquivos locais não é suportado.
+    raise NotImplementedError(
+        "API fallback requires a publicly accessible URL — local file upload not supported"
+    )
+
+    # Código abaixo mantido para referência mas nunca executado:
+    payload = {  # type: ignore[unreachable]
         "name": "stem-separation",
         "workflow": "moises/stem-4",
-        "params": {"inputUrl": f"file://{audio_path}"},
+        "params": {"inputUrl": ""},  # Requer URL pública válida
     }
     resp = requests.post(MOISES_API_URL, json=payload, headers=headers, timeout=30)
     resp.raise_for_status()

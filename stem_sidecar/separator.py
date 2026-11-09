@@ -5,6 +5,7 @@ Nunca importa demucs diretamente; invoca `python -m demucs` para capturar progre
 import subprocess
 import sys
 import re
+import threading
 from pathlib import Path
 
 MODELS = ["htdemucs", "htdemucs_ft", "htdemucs_6s"]
@@ -72,7 +73,7 @@ def separate_stems(
     process = subprocess.Popen(
         cmd,
         stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,   # Demucs escreve progresso no stderr; mesclar aqui
+        stderr=subprocess.PIPE,   # stderr separado para evitar deadlock no Windows
         text=True,
         bufsize=1,
         encoding="utf-8",
@@ -80,21 +81,53 @@ def separate_stems(
     )
 
     last_pct = 0
-    for line in process.stdout:  # type: ignore[union-attr]
-        line = line.rstrip()
-        match = _PCT_RE.search(line)
-        if match:
-            try:
-                pct = int(match.group(1))
-                if pct != last_pct:
-                    last_pct = pct
-                    # ETA linear simples: cada ponto percentual ≈ 1,5 s
-                    eta = max(0, int((100 - pct) * 1.5))
-                    progress_cb(pct, eta)
-            except ValueError:
-                pass
 
-    process.wait()
+    def _read_output(proc: subprocess.Popen) -> None:
+        """Lê stdout E stderr em thread dedicada para evitar deadlock de buffer."""
+        nonlocal last_pct
+
+        import select as _select
+        import io
+
+        # Leitura intercalada de stdout e stderr usando threads internas
+        def _drain(stream: io.TextIOBase, track_progress: bool) -> None:
+            nonlocal last_pct
+            for raw_line in stream:
+                line = raw_line.rstrip()
+                if track_progress:
+                    match = _PCT_RE.search(line)
+                    if match:
+                        try:
+                            pct = int(match.group(1))
+                            if pct != last_pct:
+                                last_pct = pct
+                                # ETA linear simples: cada ponto percentual ≈ 1,5 s
+                                eta = max(0, int((100 - pct) * 1.5))
+                                progress_cb(pct, eta)
+                        except ValueError:
+                            pass
+
+        # Thread para stderr (Demucs escreve progresso no stderr)
+        stderr_thread = threading.Thread(
+            target=_drain, args=(proc.stderr, True), daemon=True  # type: ignore[arg-type]
+        )
+        # Thread para stdout
+        stdout_thread = threading.Thread(
+            target=_drain, args=(proc.stdout, False), daemon=True  # type: ignore[arg-type]
+        )
+        stderr_thread.start()
+        stdout_thread.start()
+        stderr_thread.join()
+        stdout_thread.join()
+        proc.wait()
+
+    output_thread = threading.Thread(target=_read_output, args=(process,), daemon=True)
+    output_thread.start()
+    output_thread.join(timeout=300)  # 5 minutos
+
+    if output_thread.is_alive():
+        process.kill()
+        raise TimeoutError("Demucs timeout after 300s")
 
     if process.returncode != 0:
         raise RuntimeError(

@@ -36,13 +36,14 @@ except ImportError:
         return False
 
 
-def _get_duration(audio_path: str) -> float:
-    """Retorna duração em segundos usando librosa; 0.0 em caso de falha."""
+def _get_duration(audio_path: str) -> float | None:
+    """Retorna duração em segundos usando librosa; None em caso de falha."""
     try:
         import librosa  # type: ignore
         return float(librosa.get_duration(path=audio_path))
-    except Exception:
-        return 0.0
+    except Exception as e:
+        print(f"Warning: could not determine audio duration: {e}", flush=True)
+        return None
 
 
 # ---------------------------------------------------------------------------
@@ -80,7 +81,7 @@ def handle_request(req: dict) -> None:
 
     if not gpu_available:
         duration = _get_duration(audio_path)
-        if duration > 600:
+        if duration is None or duration > 600:
             use_api = True
 
     try:

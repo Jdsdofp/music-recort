@@ -5,10 +5,16 @@ import { Timeline } from './components/Timeline/Timeline'
 import { StemPanel } from './components/StemPanel/StemPanel'
 import { Mixer } from './components/Mixer/Mixer'
 import { useAudioEngine } from './hooks/useAudioEngine'
+import { useProject } from './hooks/useProject'
+import { useStemSeparation } from './hooks/useStemSeparation'
 
 export default function App() {
   const [audioPath, setAudioPath] = useState<string | null>(null)
   const { loadFile } = useAudioEngine()
+
+  // Registra auto-save de 30 s e listeners de stem:progress/done/error
+  useProject()
+  useStemSeparation()
 
   const handleImport = useCallback(async () => {
     const selected = await open({

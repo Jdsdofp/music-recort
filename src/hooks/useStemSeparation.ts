@@ -7,7 +7,9 @@ import { useProjectStore } from '../stores/projectStore'
 export function useStemSeparation() {
   const { stems, progress, etaSeconds, separating, error, startSeparation, setProgress, setStemsDone, setError } =
     useStemStore()
-  const { setProject, project } = useProjectStore()
+  // Usar o updater funcional do store diretamente para evitar stale closure em project
+  const setProjectFn = useProjectStore((state) => state.setProject)
+  const getProject = useProjectStore.getState
 
   useEffect(() => {
     const unlistenProgress = listen<{ percent: number; eta_seconds: number }>(
@@ -17,7 +19,8 @@ export function useStemSeparation() {
 
     const unlistenDone = listen<StemFile[]>('stem:done', (e) => {
       setStemsDone(e.payload)
-      // Adiciona stems como novas faixas no projeto
+      // Adiciona stems como novas faixas no projeto usando getState para evitar stale closure
+      const currentProject = getProject().project
       const newTracks = e.payload.map((s) => ({
         id: `${s.stem_type}-${Date.now()}`,
         name: s.stem_type.charAt(0).toUpperCase() + s.stem_type.slice(1),
@@ -28,7 +31,7 @@ export function useStemSeparation() {
         muted: false,
         soloed: false,
       }))
-      setProject({ ...project, tracks: [...project.tracks, ...newTracks] })
+      setProjectFn({ ...currentProject, tracks: [...currentProject.tracks, ...newTracks] })
     })
 
     const unlistenError = listen<string>('stem:error', (e) => setError(e.payload))
@@ -38,7 +41,7 @@ export function useStemSeparation() {
       unlistenDone.then((f) => f())
       unlistenError.then((f) => f())
     }
-  }, [setProgress, setStemsDone, setError, setProject, project])
+  }, [setProgress, setStemsDone, setError, setProjectFn, getProject])
 
   const separate = useCallback(
     async (audioPath: string, model = 'htdemucs_ft') => {
