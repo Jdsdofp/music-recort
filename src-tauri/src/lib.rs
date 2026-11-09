@@ -1,5 +1,6 @@
 pub mod audio_engine;
 pub mod project_manager;
+pub mod stem_bridge;
 
 #[cfg(not(test))]
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
