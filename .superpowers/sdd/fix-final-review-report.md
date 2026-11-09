@@ -46,4 +46,4 @@ Este é um problema pré-existente do ambiente de build, não introduzido pelas 
 
 ## Hash do Commit
 
-Ver seção abaixo após commit.
+`591e131` — branch `feature/music-recort-fases-1-2`
