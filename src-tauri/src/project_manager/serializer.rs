@@ -55,7 +55,7 @@ mod tests {
     fn test_load_missing_file_returns_error() {
         let result = load_project("/nao/existe.mrt");
         assert!(result.is_err());
-        matches!(result.unwrap_err(), ProjectError::FileNotFound(_));
+        assert!(matches!(result.unwrap_err(), ProjectError::FileNotFound(_)));
     }
 
     #[test]
